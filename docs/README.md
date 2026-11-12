@@ -118,6 +118,53 @@ flowchart TD
     U --> B
 ```
 
+## Sequence diagram
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Main as MainProgram
+    participant Ops as Operations
+    participant Data as DataProgram
+
+    User->>Main: Start app
+    loop Until user exits
+        Main->>User: Display menu
+        User->>Main: Select option (1-4)
+        alt Option 1: View Balance
+            Main->>Ops: CALL 'Operations' USING 'TOTAL '
+            Ops->>Data: CALL 'DataProgram' USING 'READ', FINAL-BALANCE
+            Data-->>Ops: Return current balance
+            Ops-->>User: Display current balance
+        else Option 2: Credit
+            Main->>Ops: CALL 'Operations' USING 'CREDIT'
+            User->>Ops: Enter credit amount
+            Ops->>Data: CALL 'DataProgram' USING 'READ', FINAL-BALANCE
+            Data-->>Ops: Return balance
+            Ops->>Ops: ADD amount TO FINAL-BALANCE
+            Ops->>Data: CALL 'DataProgram' USING 'WRITE', FINAL-BALANCE
+            Data-->>Ops: Save updated balance
+            Ops-->>User: Display new balance
+        else Option 3: Debit
+            Main->>Ops: CALL 'Operations' USING 'DEBIT '
+            User->>Ops: Enter debit amount
+            Ops->>Data: CALL 'DataProgram' USING 'READ', FINAL-BALANCE
+            Data-->>Ops: Return balance
+            alt Balance >= amount
+                Ops->>Ops: SUBTRACT amount FROM FINAL-BALANCE
+                Ops->>Data: CALL 'DataProgram' USING 'WRITE', FINAL-BALANCE
+                Data-->>Ops: Save updated balance
+                Ops-->>User: Display new balance
+            else Insufficient funds
+                Ops-->>User: Display "Insufficient funds for this debit."
+            end
+        else Option 4: Exit
+            Main->>User: Display goodbye message
+            Main-->>User: Exit program
+        end
+    end
+```
+
 ## Overall system behavior
 
 The application is a simple console-based account manager. It is a classic example of a legacy COBOL business system where:
@@ -126,7 +173,7 @@ The application is a simple console-based account manager. It is a classic examp
 - the business logic is split across programs,
 - and the balance is stored in a separate data layer.
 
-This structure is easy to understand once the responsibilities of each file are documented, and it is a good candidate for modernization into a more current architecture such as Node.js or a web API.
+This structure is easy to understand once the responsibilities of each file are documented, and it is a good candidate for modernization into a more current architecture such as Node.js or a web application.
 
 ## Modernization opportunities
 
