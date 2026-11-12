@@ -1,143 +1,49 @@
-# Legacy COBOL Accounting System Overview
+# COBOL Accounting System
 
-This repository contains a small accounting application implemented in COBOL. The code is intentionally simple and demonstrates how a legacy business app can be understood, documented, and later modernized.
+This document describes the COBOL programs in `src/cobol/`, their roles in the account workflow, and the business rules visible in the source. Although this exercise frames the system as school accounting, the current code implements one generic account balance: it does not identify students or define student-specific accounting rules.
 
-## Purpose
+## COBOL files
 
-The application supports a basic account balance workflow for an account holder:
+### `src/cobol/main.cob` — `MainProgram`
 
-- View the current balance
-- Credit funds to the account
-- Debit funds from the account
-- Exit the program
+The program entry point presents a console menu and dispatches the user's selection to `Operations`:
 
-The business logic is intentionally straightforward and uses a shared balance value stored in a data program.
+- `1` calls `Operations` with `TOTAL ` to view the balance.
+- `2` calls `Operations` with `CREDIT` to add funds.
+- `3` calls `Operations` with `DEBIT ` to withdraw funds.
+- `4` ends the menu loop and stops the program.
 
-## File-by-file breakdown
+Invalid menu selections display an error message. The menu repeats until the user exits.
 
-### `src/cobol/main.cob`
+### `src/cobol/operations.cob` — `Operations`
 
-This is the entry point of the application and is named `MainProgram`.
+Implements the account actions and coordinates balance access through `DataProgram`:
 
-Responsibilities:
+- **TOTAL:** reads and displays the current balance.
+- **CREDIT:** accepts an amount, reads the balance, adds the amount, writes the result, and displays the updated balance.
+- **DEBIT:** accepts an amount, reads the balance, and subtracts it only when the balance is at least the requested amount. Otherwise, it displays an insufficient-funds message and does not write an updated balance.
 
-- Displays a menu to the user
-- Accepts the user's choice from 1 to 4
-- Calls the `Operations` program based on the selected menu option
-- Exits when the user chooses `4`
+Amounts and balances use `PIC 9(6)V99`, allowing six whole-number digits and two decimal places. The code does not explicitly validate that entered amounts are positive or handle invalid amount input.
 
-Key behavior:
+### `src/cobol/data.cob` — `DataProgram`
 
-- Menu options are:
-  - `1. View Balance`
-  - `2. Credit Account`
-  - `3. Debit Account`
-  - `4. Exit`
-- The program loops until the user selects `4`
-- It validates input and shows an "Invalid choice" message for anything else
+Provides the balance storage interface used by `Operations`:
 
-### `src/cobol/operations.cob`
+- `READ` copies `STORAGE-BALANCE` into the caller's `BALANCE` field.
+- `WRITE` copies the caller's `BALANCE` into `STORAGE-BALANCE`.
 
-This file is named `Operations` and contains the business logic for account actions.
+The initial balance is `1000.00`. Because the balance is held in `WORKING-STORAGE`, it is in-memory state, not persistent file or database storage; it resets when the program is restarted.
 
-Responsibilities:
+## Core business rules in the source
 
-- Receives an operation type from `main.cob`
-- Reads the current balance from the data program
-- Performs credit or debit logic
-- Writes the updated balance back to storage when needed
+1. The account starts with a balance of `1000.00`.
+2. A user can view the balance, credit the account, debit the account, or exit.
+3. A credit adds the entered amount to the balance.
+4. A debit is allowed only if the current balance is greater than or equal to the entered amount; an over-balance debit is rejected with an insufficient-funds message.
+5. The menu continues to accept operations until the user chooses to exit.
 
-Key business rules:
+## Student-account scope and limitations
 
-- `TOTAL ` displays the current balance
-- `CREDIT` prompts for an amount and adds it to the balance
-- `DEBIT ` prompts for an amount and subtracts it only if funds are available
-- If the debit amount exceeds the balance, it prints `Insufficient funds for this debit.`
+No student-account-specific rules are implemented in these files. In particular, the source has no student identifier or separate balance per student, and it does not describe tuition, fees, payment plans, refunds, scholarships, account holds, authorization, receipts, or transaction history. Those requirements should not be inferred from the generic credit/debit behavior; they would need to be specified and implemented separately if required for the school's accounting system.
 
-Important implementation detail:
-
-- The code uses fixed-length strings such as `PIC X(6)` for operation names (`TOTAL `, `CREDIT`, `DEBIT `)
-- It relies on `CALL 'DataProgram' USING 'READ', FINAL-BALANCE` and `CALL 'DataProgram' USING 'WRITE', FINAL-BALANCE`
-
-### `src/cobol/data.cob`
-
-This file is named `DataProgram` and acts as the balance store.
-
-Responsibilities:
-
-- Keeps the current balance in memory
-- Returns the balance when called with `READ`
-- Saves the latest balance when called with `WRITE`
-
-Key implementation detail:
-
-- Storage starts at `1000.00`
-- The program uses a `WORKING-STORAGE` variable named `STORAGE-BALANCE`
-- `READ` copies `STORAGE-BALANCE` into the passed `BALANCE` field
-- `WRITE` copies the passed `BALANCE` back into `STORAGE-BALANCE`
-
-## Business rules summary
-
-1. Starting balance is `1000.00`.
-2. Balance can be inspected at any time.
-3. Credits increase the balance.
-4. Debits only happen when the balance is greater than or equal to the requested amount.
-5. If a debit is too large, the transaction is rejected.
-6. The program keeps running in a loop until the user exits.
-
-## Data flow diagram
-
-```mermaid
-flowchart TD
-    A[User] --> B[MainProgram main.cob]
-    B --> C{Menu choice}
-    C -->|1| D[Operations TOTAL]
-    C -->|2| E[Operations CREDIT]
-    C -->|3| F[Operations DEBIT]
-    C -->|4| G[Exit program]
-
-    D --> H[DataProgram READ]
-    H --> I[Return current balance]
-    I --> B
-
-    E --> J[Prompt user for credit amount]
-    J --> K[DataProgram READ]
-    K --> L[Add amount to balance]
-    L --> M[DataProgram WRITE]
-    M --> N[Display updated balance]
-    N --> B
-
-    F --> O[Prompt user for debit amount]
-    O --> P{Balance >= amount?}
-    P -->|Yes| Q[DataProgram READ]
-    Q --> R[Subtract amount from balance]
-    R --> S[DataProgram WRITE]
-    S --> T[Display updated balance]
-    T --> B
-    P -->|No| U[Display insufficient funds message]
-    U --> B
-```
-
-## Overall system behavior
-
-The application is a simple console-based account manager. It is a classic example of a legacy COBOL business system where:
-
-- the UI is procedural,
-- the business logic is split across programs,
-- and the balance is stored in a separate data layer.
-
-This structure is easy to understand once the responsibilities of each file are documented, and it is a good candidate for modernization into a more current architecture such as Node.js or a web API.
-
-## Modernization opportunities
-
-The existing COBOL design maps naturally to a modern application:
-
-- `main.cob` becomes the CLI/menu controller
-- `operations.cob` becomes business logic functions
-- `data.cob` becomes a simple repository or in-memory storage module
-
-The main preserved rules are:
-
-- balanced transactions,
-- validation before debits,
-- and persistent in-memory state during the app lifecycle.
+The current storage is also volatile and shared as a single balance for the running program. There is no durable persistence or audit trail.
