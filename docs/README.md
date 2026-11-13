@@ -43,6 +43,10 @@ The value is held in COBOL `WORKING-STORAGE`; this program does not save it to a
 
 The current programs do not identify students or maintain multiple accounts. They contain no student-specific rules for tuition, fees, enrollment, holds, or payment eligibility. The rules above apply only to the single generic balance implemented by this code.
 
+## Node.js accounting application
+
+The consolidated Node.js implementation is in `src/accounting/index.js`. It keeps the same menu and single in-memory account behavior and uses integer cents for balance calculations. It accepts amounts from `0.00` through `999999.99` with up to two decimal places, re-prompts for invalid input, and rejects credits that would exceed the maximum representable balance without changing the balance. These input and overflow safeguards should be confirmed with stakeholders because the COBOL programs do not define explicit handling for those cases. Run it from the application directory with `npm start`, or use the **Run COBOL-modernized Accounting App** configuration in `.vscode/launch.json`.
+
 ## Application sequence
 
 ```mermaid
