@@ -2,7 +2,7 @@
 
 This plan describes the behavior implemented by the current COBOL application. Run each test in a fresh application process unless the steps explicitly test multiple operations in one session. The current program stores one balance in memory, initialized to `1000.00`; it does not persist the balance after the process ends or maintain student identities or multiple accounts.
 
-All cases are planned and have not yet been executed. Record observed output and update the status during stakeholder validation. Cases asking for a business decision should be agreed before being treated as pass/fail requirements for the Node.js implementation.
+The cases below track manual and stakeholder validation. Automated Node.js coverage for the implemented behavior is in `src/accounting/index.test.js` and can be run with `npm test` from `src/accounting`. The table's actual-result and status fields remain `Not run` until the corresponding cases are manually validated. Cases asking for a business decision should be agreed before being treated as pass/fail requirements for the Node.js implementation.
 
 | Test Case ID | Test Case Description | Pre-conditions | Test Steps | Expected Result | Actual Result | Status (Pass/Fail) | Comments |
 |---|---|---|---|---|---|---|---|
